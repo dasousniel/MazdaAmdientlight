@@ -1,0 +1,227 @@
+#include <Adafruit_NeoPixel.h>
+
+#define PIN_STRIP1 6
+#define PIN_STRIP2 7
+#define NUM_PIXELS 24
+#define BUTTON_PIN 4
+
+Adafruit_NeoPixel strip1 = Adafruit_NeoPixel(NUM_PIXELS, PIN_STRIP1, NEO_GRB + NEO_KHZ800);
+Adafruit_NeoPixel strip2 = Adafruit_NeoPixel(NUM_PIXELS, PIN_STRIP2, NEO_GRB + NEO_KHZ800);
+
+int lastButtonState = HIGH;
+int colorIndex = 0; // 0 = Static Color, 1 = Outer LEDs Green, 2 = Pulsing Green, 3 = RGB Wheel, 4 = Stars Animation, 5 = Police Animation
+uint32_t currentColor = strip1.Color(0, 255, 0); // Initial color (Green)
+
+unsigned long previousMillis = 0;
+const long interval = 100; // Zeitintervall für die RGB Wheel Animation
+unsigned long lastWhiteAnimMillis = 0; // Zeitstempel für die letzte weiße Animation
+unsigned long lastPoliceAnimMillis = 0; // Zeitstempel für die letzte Polizei Animation
+unsigned long lastPulseMillis = 0; // Zeitstempel für die letzte Pulsation
+const long policeInterval = 300; // Intervall für die Polizei-Animation
+int wheelPosition = 0; // Position im RGB-Farbkreis
+
+void setup() {
+  Serial.begin(9600); // Initialize serial communication at 9600 bits per second
+  strip1.begin();
+  strip2.begin();
+  strip1.show(); // Initialize all pixels to 'off'
+  strip2.show(); // Initialize all pixels to 'off'
+
+  pinMode(BUTTON_PIN, INPUT_PULLUP);
+
+  // Startup Animation
+  startupAnimation();
+
+  // Set initial color
+  setAllPixelsColor(currentColor);
+}
+
+void loop() {
+  unsigned long currentMillis = millis();
+
+  // Read the button state
+  int buttonState = digitalRead(BUTTON_PIN);
+  if (buttonState == LOW && lastButtonState == HIGH) {
+    // Toggle color mode on button press
+    colorIndex = (colorIndex + 1) % 6; // Toggle between Static Color (0), Outer LEDs Green (1), Pulsing Green (2), RGB Wheel (3), Stars Animation (4), Police Animation (5)
+    if (colorIndex == 0) {
+      currentColor = strip1.Color(0, 255, 0); // Set to Green
+      setAllPixelsColor(currentColor);
+    }
+    Serial.print("Button Pressed. Color Index: ");
+    Serial.println(colorIndex);
+    delay(200); // Debounce delay
+  }
+  lastButtonState = buttonState;
+
+  // Update the animation mode
+  if (colorIndex == 1) {
+    // Outer LEDs Green mode
+    setOuterLEDsGreen();
+  } else if (colorIndex == 2) {
+    // Pulsing Green mode
+    if (currentMillis - lastPulseMillis >= 50) {
+      lastPulseMillis = currentMillis;
+      pulsingGreenAnimation();
+    }
+  } else if (colorIndex == 3) {
+    // RGB Wheel mode
+    if (currentMillis - previousMillis >= interval) {
+      previousMillis = currentMillis;
+      updateRGBWheel(strip1);
+      updateRGBWheel(strip2);
+    }
+  } else if (colorIndex == 4) {
+    // Stars Animation mode
+    starsAnimation();
+  } else if (colorIndex == 5) {
+    // Police Animation mode
+    if (currentMillis - lastPoliceAnimMillis >= policeInterval) {
+      lastPoliceAnimMillis = currentMillis;
+      policeAnimation();
+    }
+  } else {
+    // Static Color mode
+    setAllPixelsColor(currentColor);
+    if (currentMillis - lastWhiteAnimMillis >= 5000) {
+      lastWhiteAnimMillis = currentMillis;
+      // Optional: Call whitePixelRacer if you want the white animation
+    }
+  }
+}
+
+void setAllPixelsColor(uint32_t color) {
+  // Set NeoPixels color (background color)
+  for (int i = 0; i < NUM_PIXELS; i++) {
+    strip1.setPixelColor(i, color);
+    strip2.setPixelColor(i, color);
+  }
+  strip1.show();
+  strip2.show();
+}
+
+void setOuterLEDsGreen() {
+  // Set LEDs in regular intervals of 5 to green
+  strip1.clear();
+  strip2.clear();
+
+  for (int i = 0; i < NUM_PIXELS; i += 5) {
+    strip1.setPixelColor(i, strip1.Color(0, 255, 0)); // Set every 5th LED to green
+    strip2.setPixelColor(i, strip2.Color(0, 255, 0)); // Set every 5th LED to green
+  }
+  
+  strip1.show();
+  strip2.show();
+}
+
+void updateRGBWheel(Adafruit_NeoPixel& strip) {
+  // Update the color of all pixels in the RGB wheel effect
+  for (int i = 0; i < NUM_PIXELS; i++) {
+    // Calculate wheel color for the current pixel
+    strip.setPixelColor(i, wheel((i + wheelPosition) % 256));
+  }
+  strip.show();
+
+  // Move the color wheel position
+  wheelPosition = (wheelPosition + 1) % 256; // Increment the wheel position
+  delay(20); // Delay for color wheel speed
+}
+
+uint32_t wheel(byte pos) {
+  // Generate a color wheel effect
+  if (pos < 85) {
+    return strip1.Color(pos * 3, 255 - pos * 3, 0);
+  } else if (pos < 170) {
+    pos -= 85;
+    return strip1.Color(255 - pos * 3, 0, pos * 3);
+  } else {
+    pos -= 170;
+    return strip1.Color(0, pos * 3, 255 - pos * 3);
+  }
+}
+
+void startupAnimation() {
+  // Startup animation: A single LED runs from start to end and stays, then the next LED does the same
+  for (int i = 0; i < NUM_PIXELS; i++) {
+    // Set all pixels to green for the animation
+    strip1.clear();
+    strip2.clear();
+
+    // Light up the LEDs from the start to the current position
+    for (int j = 0; j <= i; j++) {
+      strip1.setPixelColor(j, strip1.Color(0, 255, 0));
+      strip2.setPixelColor(j, strip2.Color(0, 255, 0));
+    }
+
+    // Show the updates
+    strip1.show();
+    strip2.show();
+
+    // Delay to create the running effect
+    delay(80); // Adjust the speed of the running effect
+  }
+
+  // Keep all LEDs on at the end of the animation
+  setAllPixelsColor(currentColor);
+}
+
+void policeAnimation() {
+  // Police animation with alternating red and blue stripes
+  static bool isRed = true; // Alternates between red and blue
+
+  // Set one strip to red and the other to blue
+  if (isRed) {
+    setStripColor(strip1, strip1.Color(255, 0, 0)); // Red
+    setStripColor(strip2, strip2.Color(0, 0, 255)); // Blue
+  } else {
+    setStripColor(strip1, strip1.Color(0, 0, 255)); // Blue
+    setStripColor(strip2, strip2.Color(255, 0, 0)); // Red
+  }
+
+  strip1.show();
+  strip2.show();
+
+  // Toggle color for the next frame
+  isRed = !isRed;
+}
+
+void pulsingGreenAnimation() {
+  // Pulsing green animation
+  static int brightness = 255;
+  static int fadeAmount = -5; // Fade in and out
+
+  // Update brightness
+  brightness += fadeAmount;
+
+  // Reverse the direction of the fading at the ends of the fade
+  if (brightness <= 0 || brightness >= 255) {
+    fadeAmount = -fadeAmount;
+  }
+
+  // Set all pixels to green with the current brightness
+  setAllPixelsColor(strip1.Color(0, brightness, 0));
+}
+
+void starsAnimation() {
+  // Stars animation with random LEDs lighting up
+  int numStars = 5; // Number of stars
+
+  strip1.clear();
+  strip2.clear();
+
+  for (int i = 0; i < numStars; i++) {
+    int randomPixel = random(NUM_PIXELS);
+    strip1.setPixelColor(randomPixel, strip1.Color(255, 255, 255)); // White star
+    strip2.setPixelColor(randomPixel, strip2.Color(255, 255, 255)); // White star
+  }
+
+  strip1.show();
+  strip2.show();
+}
+
+void setStripColor(Adafruit_NeoPixel& strip, uint32_t color) {
+  // Set all pixels of the given strip to the specified color
+  for (int i = 0; i < NUM_PIXELS; i++) {
+    strip.setPixelColor(i, color);
+  }
+}
