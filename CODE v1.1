@@ -191,29 +191,69 @@ uint32_t wheel(byte pos) {
 }
 
 void startupAnimation() {
-  // Startup animation: A single LED runs from start to end and stays, then the next LED does the same
+  // Define the animation speed
+  const int speed = 50; // Speed of the animation (lower is faster)
+
+  // Define green shades for the animation
+  uint32_t greenShades[] = {
+    strip1.Color(0, 50, 0),    // Dark green
+    strip1.Color(0, 100, 0),   // Medium green
+    strip1.Color(0, 150, 0),   // Bright green
+    strip1.Color(0, 200, 0),   // Very bright green
+    strip1.Color(0, 255, 0)    // Full green
+  };
+  int numShades = sizeof(greenShades) / sizeof(greenShades[0]);
+
+  // Wipe animation with gradient effect (forward)
   for (int i = 0; i < NUM_PIXELS; i++) {
-    // Set all pixels to green for the animation
+    // Clear all strips
     strip1.clear();
     strip2.clear();
+    strip3.clear();
+    strip4.clear();
 
-    // Light up the LEDs from the start to the current position
+    // Set pixels from start to current position with a green gradient effect
     for (int j = 0; j <= i; j++) {
-      strip1.setPixelColor(j, strip1.Color(0, 255, 0));
-      strip2.setPixelColor(j, strip2.Color(0, 255, 0));
+      uint32_t color = greenShades[j % numShades];
+      strip1.setPixelColor(j, color);
+      strip2.setPixelColor(j, color);
     }
 
     // Show the updates
     strip1.show();
     strip2.show();
-
+    strip3.show();
+    strip4.show();
+    
     // Delay to create the running effect
-    delay(80); // Adjust the speed of the running effect
+    delay(speed);
+  }
+
+  // End with a full green wipe effect (backward)
+  for (int i = NUM_PIXELS - 1; i >= 0; i--) {
+
+
+    // Set pixels from end to current position with full green
+    for (int j = NUM_PIXELS - 1; j >= i; j--) {
+      strip1.setPixelColor(j, strip1.Color(0, 255, 0)); // Full green
+      strip2.setPixelColor(j, strip1.Color(0, 255, 0)); // Full green
+    }
+
+    // Show the updates
+    strip1.show();
+    strip2.show();
+    strip3.show();
+    strip4.show();
+    
+    // Delay to create the running effect
+    delay(speed);
   }
 
   // Keep all LEDs on at the end of the animation
-  setAllPixelsColor(currentColor);
+  setAllPixelsColor(strip1.Color(0, 255, 0)); // Full green
 }
+
+
 
 void policeAnimation() {
   // Police animation with alternating red and blue stripes
@@ -360,3 +400,4 @@ void setStripColor(Adafruit_NeoPixel& strip, uint32_t color) {
     strip.setPixelColor(i, color);
   }
 }
+
