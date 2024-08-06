@@ -69,10 +69,7 @@ void loop() {
     Serial.print("Button Pressed. Color Index: ");
     Serial.println(colorIndex);
     delay(200); // Debounce delay
-  }
-
-  // Check if the reset button is pressed
-  if (resetButtonState == LOW && lastResetButtonState == HIGH) {
+  } else if (resetButtonState == LOW && lastResetButtonState == HIGH) {
     // Set mode to Static Color (0)
     colorIndex = 0;
     currentColor = strip1.Color(0, 255, 0); // Set to Green
@@ -83,6 +80,8 @@ void loop() {
 
   lastButtonState = buttonState;
   lastResetButtonState = resetButtonState;
+
+
 
   // Update the animation mode
   if (colorIndex == 1) {
@@ -100,6 +99,8 @@ void loop() {
       lastRunningLightsMillis = currentMillis;
       runningLightsAnimation();
     }
+
+
   } else if (colorIndex == 4) {
     // RGB Wheel mode
     if (currentMillis - previousMillis >= interval) {
@@ -109,16 +110,25 @@ void loop() {
       updateRGBWheelSmall(strip3);
       updateRGBWheelSmall(strip4);
     }
+
+
+
+
   } else if (colorIndex == 5) {
+    
     // Stars Animation mode
     starsAnimation();
   } else if (colorIndex == 6) {
+
     // Police Animation mode
     if (currentMillis - lastPoliceAnimMillis >= policeInterval) {
       lastPoliceAnimMillis = currentMillis;
       policeAnimation();
     }
+
+
   } else if (colorIndex == 7) {
+
     // Random Color Blinks mode
     randomColorBlinks();
   } else {
@@ -204,128 +214,214 @@ void startupAnimation() {
 
   // Define green shades for the animation
 
+
   // End with a full green wipe effect (backward)
   for (int i = NUM_PIXELS - 1; i >= 0; i--) {
+
+
+    // Set pixels from end to current position with full green
+    for (int j = NUM_PIXELS - 1; j >= i; j--) {
+      strip1.setPixelColor(j, strip1.Color(0, 55, 0)); // Full green
+      strip2.setPixelColor(j, strip1.Color(0, 55, 0)); // Full green
+    }
+
+    // Show the updates
+    strip1.show();
+    strip2.show();
+    strip3.show();
+    strip4.show();
+    
+    // Delay to create the running effect
+    delay(speed);
+  }
+  for (int i = NUM_PIXELS - 1; i >= 0; i--) {
+
+
+    // Set pixels from end to current position with full green
+    for (int j = NUM_PIXELS - 1; j >= i; j--) {
+      strip1.setPixelColor(j, strip1.Color(0, 155, 0)); // Full green
+      strip2.setPixelColor(j, strip1.Color(0, 155, 0)); // Full green
+    }
+
+    // Show the updates
+    strip1.show();
+    strip2.show();
+    strip3.show();
+    strip4.show();
+    
+    // Delay to create the running effect
+    delay(speed);
+  }
+  // End with a full green wipe effect (backward)
+  for (int i = NUM_PIXELS - 1; i >= 0; i--) {
+
+
     // Set pixels from end to current position with full green
     for (int j = NUM_PIXELS - 1; j >= i; j--) {
       strip1.setPixelColor(j, strip1.Color(0, 255, 0)); // Full green
-      strip2.setPixelColor(j, strip2.Color(0, 255, 0)); // Full green
+      strip2.setPixelColor(j, strip1.Color(0, 255, 0)); // Full green
     }
+
+    // Show the updates
     strip1.show();
     strip2.show();
+    strip3.show();
+    strip4.show();
+    
+    // Delay to create the running effect
     delay(speed);
   }
+  // Wipe animation with gradient effect (forward)
 
-  // Set the final full green state
-  for (int i = 0; i < NUM_PIXELS; i++) {
-    strip1.setPixelColor(i, strip1.Color(0, 255, 0)); // Full green
-    strip2.setPixelColor(i, strip2.Color(0, 255, 0)); // Full green
+
+  // Keep all LEDs on at the end of the animation
+  setAllPixelsColor(strip1.Color(0, 255, 0)); // Full green
+}
+
+
+
+void policeAnimation() {
+  // Police animation with alternating red and blue stripes
+  static bool isRed = true; // Alternates between red and blue
+
+  // Set one strip to red and the other to blue
+  if (isRed) {
+    setStripColor(strip1, strip1.Color(255, 0, 0)); // Red
+    setStripColor(strip2, strip2.Color(0, 0, 255)); // Blue
+    strip3.setPixelColor(0, strip3.Color(255, 0, 0)); // Red
+    strip4.setPixelColor(0, strip4.Color(0, 0, 255)); // Blue
+  } else {
+    setStripColor(strip1, strip1.Color(0, 0, 255)); // Blue
+    setStripColor(strip2, strip2.Color(255, 0, 0)); // Red
+    strip3.setPixelColor(0, strip3.Color(0, 0, 255)); // Blue
+    strip4.setPixelColor(0, strip4.Color(255, 0, 0)); // Red
   }
-  strip3.setPixelColor(0, strip3.Color(0, 255, 0)); // Full green
-  strip4.setPixelColor(0, strip4.Color(0, 255, 0)); // Full green
 
   strip1.show();
   strip2.show();
   strip3.show();
   strip4.show();
+
+  // Toggle color for the next frame
+  isRed = !isRed;
 }
 
 void pulsingGreenAnimation() {
-  // Pulsing green effect
-  static int brightness = 0;
-  static int increment = 5;
+  // Pulsing green animation
+  static int brightness = 255;
+  static int fadeAmount = -5; // Fade in and out
 
-  brightness += increment;
+  // Update brightness
+  brightness += fadeAmount;
+
+  // Reverse the direction of the fading at the ends of the fade
   if (brightness <= 0 || brightness >= 255) {
-    increment = -increment; // Reverse direction at the ends
+    fadeAmount = -fadeAmount;
   }
 
-  uint32_t pulsingGreen = strip1.Color(0, brightness, 0); // Adjust the green value
-  setAllPixelsColor(pulsingGreen);
-}
-
-void policeAnimation() {
-  // Police lights animation (red and blue flashing)
-  static bool redOn = true;
-
-  uint32_t redColor = strip1.Color(255, 0, 0); // Red color
-  uint32_t blueColor = strip1.Color(0, 0, 255); // Blue color
-  uint32_t offColor = strip1.Color(0, 0, 0); // Off
-
-  // Set the colors alternately
-  for (int i = 0; i < NUM_PIXELS; i++) {
-    if (redOn) {
-      strip1.setPixelColor(i, (i % 2 == 0) ? redColor : offColor);
-      strip2.setPixelColor(i, (i % 2 == 0) ? redColor : offColor);
-    } else {
-      strip1.setPixelColor(i, (i % 2 == 0) ? offColor : blueColor);
-      strip2.setPixelColor(i, (i % 2 == 0) ? offColor : blueColor);
-    }
-  }
-
-  strip1.show();
-  strip2.show();
-
-  // Switch the colors
-  redOn = !redOn;
-}
-
-void randomColorBlinks() {
-  // Random color blinks effect
-  uint32_t randomColor1 = strip1.Color(random(256), random(256), random(256)); // Random color for strip1
-  uint32_t randomColor2 = strip2.Color(random(256), random(256), random(256)); // Random color for strip2
-  uint32_t randomColor3 = strip3.Color(random(256), random(256), random(256)); // Random color for strip3
-  uint32_t randomColor4 = strip4.Color(random(256), random(256), random(256)); // Random color for strip4
-
-  // Set a random pixel to a random color
-  strip1.setPixelColor(random(NUM_PIXELS), randomColor1);
-  strip2.setPixelColor(random(NUM_PIXELS), randomColor2);
-  strip3.setPixelColor(0, randomColor3);
-  strip4.setPixelColor(0, randomColor4);
-
-  strip1.show();
-  strip2.show();
-  strip3.show();
-  strip4.show();
-}
-
-void runningLightsAnimation() {
-  static int position = 0; // Current position of the running lights
-  position++; // Move to the next position
-
-  for (int i = 0; i < NUM_PIXELS; i++) {
-    // Set the color for each pixel
-    strip1.setPixelColor(i, strip1.Color((sin(i + position) * 127 + 128) / 255, 0, 0)); // Red color
-    strip2.setPixelColor(i, strip2.Color((sin(i + position) * 127 + 128) / 255, 0, 0)); // Red color
-  }
-  strip3.setPixelColor(0, strip3.Color((sin(position) * 127 + 128) / 255, 0, 0)); // Red color
-  strip4.setPixelColor(0, strip4.Color((sin(position) * 127 + 128) / 255, 0, 0)); // Red color
-
-  strip1.show();
-  strip2.show();
-  strip3.show();
-  strip4.show();
-
-  delay(50); // Adjust the speed of the running lights
+  // Set all pixels to green with the current brightness
+  setAllPixelsColor(strip1.Color(0, brightness, 0));
 }
 
 void starsAnimation() {
-  // Starry sky effect
+  // Stars animation with random LEDs lighting up
+  int numStars = 5; // Number of stars
+
   strip1.clear();
   strip2.clear();
   strip3.clear();
   strip4.clear();
 
-  // Randomly set some pixels to white (like stars)
-  for (int i = 0; i < NUM_PIXELS / 5; i++) {
-    strip1.setPixelColor(random(NUM_PIXELS), strip1.Color(255, 255, 255)); // White color
-    strip2.setPixelColor(random(NUM_PIXELS), strip2.Color(255, 255, 255)); // White color
+  for (int i = 0; i < numStars; i++) {
+    int randomPixel = random(NUM_PIXELS);
+    strip1.setPixelColor(randomPixel, strip1.Color(255, 255, 255)); // White star
+    strip2.setPixelColor(randomPixel, strip2.Color(255, 255, 255)); // White star
+  }
+  int randomPixelSmall = random(2); // Randomly choose between the two small strips
+  if (randomPixelSmall == 0) {
+    strip3.setPixelColor(0, strip3.Color(255, 255, 255)); // White star
+  } else {
+    strip4.setPixelColor(0, strip4.Color(255, 255, 255)); // White star
   }
 
   strip1.show();
   strip2.show();
   strip3.show();
   strip4.show();
+}
 
-  delay(100); // Adjust the speed of the starry sky effect
+void randomColorBlinks() {
+  // Random Color Blinks Animation
+  strip1.clear();
+  strip2.clear();
+  strip3.clear();
+  strip4.clear();
+
+  // Randomly set colors for all pixels
+  for (int i = 0; i < NUM_PIXELS; i++) {
+    uint32_t color = strip1.Color(random(256), random(256), random(256));
+    strip1.setPixelColor(i, color);
+    strip2.setPixelColor(i, color);
+  }
+
+  // Randomly set color for the small strips
+  uint32_t colorSmall = strip1.Color(random(256), random(256), random(256));
+  strip3.setPixelColor(0, colorSmall);
+  strip4.setPixelColor(0, colorSmall);
+
+  strip1.show();
+  strip2.show();
+  strip3.show();
+  strip4.show();
+
+  delay(100); // Delay for the blinking effect
+}
+
+void runningLightsAnimation() {
+  // Running Lights Animation: LEDs turn on and off in sequence
+  static int currentPixel = 0;
+  static unsigned long lastUpdateMillis = 0;
+  const long interval = 100; // Time between each LED turning on or off
+
+  unsigned long currentMillis = millis();
+  
+  if (currentMillis - lastUpdateMillis >= interval) {
+    lastUpdateMillis = currentMillis;
+
+    // Clear all strips
+    strip1.clear();
+    strip2.clear();
+    strip3.clear();
+    strip4.clear();
+
+    // Turn on the current LED
+    strip1.setPixelColor(currentPixel, strip1.Color(0, 255, 0)); // White
+    strip2.setPixelColor(currentPixel, strip2.Color(0, 255, 0)); // White
+
+    // Turn on the pixel in one of the small strips
+    if (currentPixel % 2 == 0) {
+      strip3.setPixelColor(0, strip3.Color(0, 255, 0)); // White
+    } else {
+      strip4.setPixelColor(0, strip4.Color(0, 255, 0)); // White
+    }
+
+    // Show the updated strips
+    strip1.show();
+    strip2.show();
+    strip3.show();
+    strip4.show();
+
+    // Move to the next pixel
+    currentPixel = (currentPixel + 1) % NUM_PIXELS;
+
+    // Optional: delay to see each LED before it turns off
+    delay(50);
+  }
+}
+
+void setStripColor(Adafruit_NeoPixel& strip, uint32_t color) {
+  // Set all pixels of the given strip to the specified color
+  for (int i = 0; i < strip.numPixels(); i++) {
+    strip.setPixelColor(i, color);
+  }
 }
